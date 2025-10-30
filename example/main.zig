@@ -1,9 +1,5 @@
 const std = @import("std");
 const midi = @import("zig_midi");
-const conio = @cImport({
-    @cInclude("windows.h");
-    @cInclude("conio.h");
-});
 
 fn cb(device_id: midi.MidiDeviceId, msg: midi.MidiData, user_data: ?*anyopaque) void {
     _ = user_data;
@@ -40,11 +36,13 @@ pub fn main() !void {
     };
     const midiIn = try midi.midiInOpen(deviceIndex, &user_cb_data);
     std.log.info("MIDI input device with id {} opened", .{deviceIndex});
-    while (true) {
-        if (conio._kbhit() != 0) {
-            const ch = conio._getch();
-            if (ch == conio.VK_ESCAPE or ch == 'q' or ch == 'Q') {
-                break;
+    main_loop: while (true) {
+        const line = stdin.takeDelimiterInclusive('\n') catch return;
+        const cmd = std.mem.trim(u8, line, &std.ascii.whitespace);
+        const exit_cmds: [3][]const u8 = .{ "exit", "q", "quit" };
+        for (exit_cmds) |exit_cmd| {
+            if (std.mem.eql(u8, cmd, exit_cmd)) {
+                break :main_loop;
             }
         }
         std.Thread.sleep(100);
