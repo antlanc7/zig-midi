@@ -1,9 +1,12 @@
 const std = @import("std");
 const midi = @import("zig_midi");
 
-fn cb(device_id: midi.MidiDeviceId, msg: midi.MidiData, user_data: ?*anyopaque) void {
-    _ = user_data;
-    std.log.info("MIDI event input ID {}: [{}] data: {} {} {}", .{ device_id, msg.timestamp, msg.status, msg.data1, msg.data2 });
+fn cb(msg: midi.MidiData, user_data: ?*anyopaque) void {
+    const device_id_ptr: *const midi.MidiDeviceId = @ptrCast(@alignCast(user_data));
+    const device_id = device_id_ptr.*;
+    if (msg.status != 0xf8 and msg.status != 0xfe) {
+        std.log.info("MIDI event input ID {}: [{}] data: {} {} {}", .{ device_id, msg.timestamp, msg.status, msg.data1, msg.data2 });
+    }
 }
 
 pub fn main() !void {
@@ -32,7 +35,7 @@ pub fn main() !void {
     }
     const user_cb_data: midi.MidiEventCallbackData = .{
         .cb = cb,
-        .data = null,
+        .data = @constCast(&deviceIndex),
     };
     const midiIn = try midi.midiInOpen(deviceIndex, &user_cb_data);
     std.log.info("MIDI input device with id {} opened", .{deviceIndex});

@@ -10,12 +10,9 @@ pub const MidiDevice = struct {
 };
 
 fn driver_cb(hMidiIn: wm.c.HMIDIIN, wMsg: wm.c.UINT, dwInstance: wm.c.DWORD_PTR, dwParam1: wm.c.DWORD_PTR, dwParam2: wm.c.DWORD_PTR) callconv(.winapi) void {
+    _ = hMidiIn;
     const user_cb: *const common.MidiEventCallbackData = @ptrFromInt(dwInstance);
     const msgType: wm.MimMessageType = @enumFromInt(wMsg);
-    const midiInDeviceId = wm.midiInGetID(hMidiIn) catch |err| {
-        std.log.err("midiInGetID failed {}: invalid midiIn handle {*}", .{ err, hMidiIn });
-        return;
-    };
     if (msgType == .MIM_DATA) {
         const data = std.mem.toBytes(dwParam1);
         const midiData: common.MidiData = .{
@@ -24,7 +21,7 @@ fn driver_cb(hMidiIn: wm.c.HMIDIIN, wMsg: wm.c.UINT, dwInstance: wm.c.DWORD_PTR,
             .data2 = data[2],
             .timestamp = dwParam2,
         };
-        user_cb.cb(midiInDeviceId, midiData, user_cb.data);
+        user_cb.cb(midiData, user_cb.data);
     }
 }
 

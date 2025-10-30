@@ -13,6 +13,16 @@ pub fn build(b: *std.Build) void {
     });
     winmm_mod.linkSystemLibrary("winmm", .{});
 
+    const coremidi_mod = b.addModule("coremidi", .{
+        .root_source_file = b.path("src/bindings/coremidi.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    coremidi_mod.linkSystemLibrary("objc", .{});
+    coremidi_mod.linkFramework("CoreFoundation", .{});
+    coremidi_mod.linkFramework("CoreMIDI", .{});
+
     const midi_common = b.createModule(.{
         .root_source_file = b.path("src/common/common.zig"),
         .target = target,
@@ -29,6 +39,16 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const coremidi_driver = b.createModule(.{
+        .root_source_file = b.path("src/drivers/coremidi.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "common", .module = midi_common },
+            .{ .name = "coremidi", .module = coremidi_mod },
+        },
+    });
+
     const mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
@@ -37,8 +57,9 @@ pub fn build(b: *std.Build) void {
             .{ .name = "common", .module = midi_common },
             .{ .name = "driver", .module = switch (target.result.os.tag) {
                 .windows => winmm_driver,
+                .macos => coremidi_driver,
                 else => {
-                    std.debug.print("Target platform {t} not supported", .{target.result.os.tag});
+                    std.debug.print("Target platform {t} not supported\n", .{target.result.os.tag});
                     std.process.exit(1);
                 },
             } },
