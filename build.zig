@@ -88,21 +88,23 @@ pub fn build(b: *std.Build) void {
     const dynlib_install = b.addInstallArtifact(dynlib, .{ .dest_dir = .{ .override = .{ .custom = "dynlib" } } });
     dynlib_step.dependOn(&dynlib_install.step);
 
-    const example = b.addExecutable(.{
-        .name = "zig_midi_example",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("example/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
-            .imports = &.{
-                .{ .name = "zig_midi", .module = mod },
-            },
-        }),
+    const example_mod = b.createModule(.{
+        .root_source_file = b.path("example/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .imports = &.{
+            .{ .name = "zig_midi", .module = mod },
+        },
     });
 
-    const check_step = b.step("check", "Check the example");
-    check_step.dependOn(&example.step);
+    const example_check = b.addExecutable(.{ .name = "zig_midi_example_check", .root_module = example_mod });
+    b.step("check", "check example for compile errors").dependOn(&example_check.step);
+
+    const example = b.addExecutable(.{
+        .name = "zig_midi_example",
+        .root_module = example_mod,
+    });
 
     const build_example_step = b.step("example", "Build the example");
     const build_example = b.addInstallArtifact(example, .{});
