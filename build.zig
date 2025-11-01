@@ -1,7 +1,6 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const version: std.SemanticVersion = .{ .major = 0, .minor = 0, .patch = 0 };
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -65,28 +64,6 @@ pub fn build(b: *std.Build) void {
             } },
         },
     });
-
-    const lib = b.addLibrary(.{
-        .name = "zig_midi",
-        .linkage = .static,
-        .root_module = mod,
-        .version = version,
-    });
-
-    const lib_step = b.step("lib", "Build the static library");
-    const lib_install = b.addInstallArtifact(lib, .{});
-    lib_step.dependOn(&lib_install.step);
-
-    const dynlib = b.addLibrary(.{
-        .name = "zig_midi",
-        .linkage = .dynamic,
-        .root_module = mod,
-        .version = version,
-    });
-
-    const dynlib_step = b.step("dynlib", "Build the dynamic library");
-    const dynlib_install = b.addInstallArtifact(dynlib, .{ .dest_dir = .{ .override = .{ .custom = "dynlib" } } });
-    dynlib_step.dependOn(&dynlib_install.step);
 
     const example_mod = b.createModule(.{
         .root_source_file = b.path("example/main.zig"),
