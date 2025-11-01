@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const use_alsa_raw = b.option(bool, "alsa_raw", "Use alsa_raw instead of alsa_seq");
+
     const winmm_mod = b.addModule("winmm", .{
         .root_source_file = b.path("src/bindings/winmm.zig"),
         .target = target,
@@ -21,6 +23,22 @@ pub fn build(b: *std.Build) void {
     coremidi_mod.linkSystemLibrary("objc", .{});
     coremidi_mod.linkFramework("CoreFoundation", .{});
     coremidi_mod.linkFramework("CoreMIDI", .{});
+
+    const alsa_raw_mod = b.addModule("alsa_raw", .{
+        .root_source_file = b.path("src/bindings/alsa_raw.zig"),
+        .target = b.resolveTargetQuery(.{ .os_tag = .linux, .cpu_arch = .aarch64 }),
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    alsa_raw_mod.linkSystemLibrary("asound", .{});
+
+    const alsa_seq_mod = b.addModule("alsa_seq", .{
+        .root_source_file = b.path("src/bindings/alsa_seq.zig"),
+        .target = b.resolveTargetQuery(.{ .os_tag = .linux, .cpu_arch = .aarch64 }),
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    alsa_seq_mod.linkSystemLibrary("asound", .{});
 
     const midi_common = b.createModule(.{
         .root_source_file = b.path("src/common/common.zig"),
@@ -48,6 +66,26 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const alsa_raw_driver = b.createModule(.{
+        .root_source_file = b.path("src/drivers/alsa_raw.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "common", .module = midi_common },
+            .{ .name = "alsa_raw", .module = alsa_raw_mod },
+        },
+    });
+
+    const alsa_seq_driver = b.createModule(.{
+        .root_source_file = b.path("src/drivers/alsa_seq.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "common", .module = midi_common },
+            .{ .name = "alsa_seq", .module = alsa_seq_mod },
+        },
+    });
+
     const mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
@@ -57,6 +95,7 @@ pub fn build(b: *std.Build) void {
             .{ .name = "driver", .module = switch (target.result.os.tag) {
                 .windows => winmm_driver,
                 .macos => coremidi_driver,
+                .linux => if (use_alsa_raw == true) alsa_raw_driver else alsa_seq_driver,
                 else => {
                     std.debug.print("Target platform {t} not supported\n", .{target.result.os.tag});
                     std.process.exit(1);
