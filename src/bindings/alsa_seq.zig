@@ -1,11 +1,13 @@
 const std = @import("std");
-pub const c = @cImport({
+const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
 fn snd_error_check(r: c_int) !void {
     if (r < 0) return error.snd_error;
 }
+
+pub const snd_seq_t = c.snd_seq_t;
 
 pub const snd_seq_open_streams_t = enum(c_int) {
     SND_SEQ_OPEN_OUTPUT = c.SND_SEQ_OPEN_OUTPUT,
@@ -109,4 +111,8 @@ pub fn snd_midi_event_no_status(dev: *c.snd_midi_event_t, on: bool) void {
 
 pub fn snd_midi_event_free(dev: *c.snd_midi_event_t) void {
     c.snd_midi_event_free(dev);
+}
+
+pub fn snd_seq_connect_from(seq: *c.snd_seq_t, port: c_int, client_id: c_int, port_id: c_int) !void {
+    return snd_error_check(c.snd_seq_connect_from(seq, port, client_id, port_id));
 }

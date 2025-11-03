@@ -3,7 +3,7 @@ const common = @import("common");
 const alsa = @import("alsa_seq");
 
 pub const DeviceHandle = struct {
-    handle: *alsa.c.snd_seq_t,
+    handle: *alsa.snd_seq_t,
     port: c_int,
 };
 
@@ -30,17 +30,29 @@ fn midiThread(device: MidiDevice) void {
     while (true) {
         const ev = alsa.snd_seq_event_input(device.handle.handle) catch continue;
         var ev_buffer: [12]u8 = undefined;
-        const ev_data = alsa.snd_midi_event_decode(decoder, &ev_buffer, ev) catch continue;
+        const data = alsa.snd_midi_event_decode(decoder, &ev_buffer, ev) catch continue;
+        if (data.len == 0) continue;
+        const opcode = data[0];
+        const status = opcode & 0xf0;
+        const channel: u4 = @truncate(opcode);
+        const is_sys_msg = status == 0xf0;
         device.user_cb_data.cb(.{
             .timestamp = ev.time.tick,
-            .status = if (ev_data.len > 0) ev_data[0] else 0,
-            .data1 = if (ev_data.len > 1) ev_data[1] else 0,
-            .data2 = if (ev_data.len > 2) ev_data[2] else 0,
+            .status = if (is_sys_msg) opcode else status,
+            .channel = if (is_sys_msg) 0 else channel,
+            .data1 = if (data.len > 1) data[1] else 0,
+            .data2 = if (data.len > 2) data[2] else 0,
         }, device.user_cb_data.data);
     }
 }
 
 pub fn midiInOpen(device_id: common.MidiDeviceId, user_cb_data: *const common.MidiEventCallbackData) !MidiDevice {
+    var tokenizer = std.mem.tokenizeScalar(u8, device_id, ',');
+    const client_id_str = tokenizer.next() orelse return error.InvalidDeviceId;
+    const client_id = std.fmt.parseInt(c_int, client_id_str, 10) catch return error.InvalidDeviceId;
+    const port_id_str = tokenizer.next() orelse return error.InvalidDeviceId;
+    const port_id = std.fmt.parseInt(c_int, port_id_str, 10) catch return error.InvalidDeviceId;
+
     var device: MidiDevice = undefined;
     device.user_cb_data = user_cb_data;
 
@@ -55,7 +67,7 @@ pub fn midiInOpen(device_id: common.MidiDeviceId, user_cb_data: *const common.Mi
         .{ .SND_SEQ_PORT_TYPE_APPLICATION = true },
     );
 
-    _ = alsa.c.snd_seq_connect_from(device.handle.handle, device.handle.port, @intCast(device_id), 0);
+    try alsa.snd_seq_connect_from(device.handle.handle, device.handle.port, client_id, port_id);
 
     const thread = try std.Thread.spawn(.{}, midiThread, .{device});
     thread.detach();
@@ -68,7 +80,15 @@ pub fn midiInClose(device: MidiDevice) !void {
 }
 
 pub fn getMidiInDeviceCount() usize {
-    return std.math.maxInt(i32);
+    var count: usize = 0;
+    const cb = struct {
+        pub fn cb(_: common.MidiDeviceId, _: [:0]const u8, user_data: ?*anyopaque) void {
+            const count_ptr: *usize = @ptrCast(@alignCast(user_data));
+            count_ptr.* += 1;
+        }
+    };
+    forEachMidiDevice(cb.cb, &count);
+    return count;
 }
 
 pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {

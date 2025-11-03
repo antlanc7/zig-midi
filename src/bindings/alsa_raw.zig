@@ -1,5 +1,5 @@
 const std = @import("std");
-pub const c = @cImport({
+const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
@@ -11,6 +11,8 @@ fn snd_isize_check(r: isize) !usize {
     if (r < 0) return error.snd_error;
     return @intCast(r);
 }
+
+pub const snd_rawmidi_t = c.snd_rawmidi_t;
 
 pub fn snd_rawmidi_open(inputp: ?**c.snd_rawmidi_t, outputp: ?**c.snd_rawmidi_t, name: [:0]const u8, mode: c_int) !void {
     var input: ?*c.snd_rawmidi_t = undefined;
@@ -25,6 +27,7 @@ pub fn snd_rawmidi_close(handle: *c.snd_rawmidi_t) !void {
 }
 
 pub fn snd_rawmidi_read(handle: *c.snd_rawmidi_t, buf: []u8) !usize {
+    if (buf.len == 0) return 0;
     return snd_isize_check(c.snd_rawmidi_read(handle, buf.ptr, buf.len));
 }
 
