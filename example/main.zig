@@ -16,7 +16,7 @@ pub fn main() !void {
         return error.NoMidiDevicesFound;
     }
     const for_each_device = struct {
-        fn cb(device_id: midi.MidiDeviceId, device_name: [:0]const u8, user_data: ?*anyopaque) void {
+        fn cb(device_id: midi.MidiDeviceId, device_name: [*:0]const u8, user_data: ?*anyopaque) void {
             _ = user_data;
             std.log.info("Device {}: {s}", .{ device_id, device_name });
         }

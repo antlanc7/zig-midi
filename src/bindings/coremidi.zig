@@ -108,17 +108,14 @@ pub fn MIDIObjectGetStringProperty(source: c.MIDIObjectRef, propertyID: c.CFStri
     return cfStringNullable orelse CoreMidiError;
 }
 
-pub fn CFStringGetCStringPtr(cfString: c.CFStringRef, encoding: c.CFStringEncoding) ?[:0]const u8 {
-    const out = c.CFStringGetCStringPtr(cfString, encoding);
-    if (out == null) return null;
-    return std.mem.span(out);
+pub fn CFStringGetCStringPtr(cfString: c.CFStringRef, encoding: c.CFStringEncoding) ?[*:0]const u8 {
+    return c.CFStringGetCStringPtr(cfString, encoding);
 }
 
-pub fn CFStringGetCString(cfString: c.CFStringRef, buffer: []u8, encoding: c.CFStringEncoding) ![:0]u8 {
+pub fn CFStringGetCString(cfString: c.CFStringRef, buffer: []u8, encoding: c.CFStringEncoding) ![*:0]u8 {
     const res = c.CFStringGetCString(cfString, buffer.ptr, @intCast(buffer.len), encoding);
     if (res == 0) return CoreMidiError;
-    const out: [*c]u8 = @ptrCast(buffer.ptr);
-    return std.mem.span(out);
+    return buffer.ptr;
 }
 
 pub const CFRelease = c.CFRelease;
