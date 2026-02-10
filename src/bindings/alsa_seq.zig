@@ -52,7 +52,7 @@ pub const snd_seq_port_type_t = packed struct(c_uint) {
     _: u16 = 0,
 };
 
-pub fn snd_seq_open(name: [:0]const u8, streams: snd_seq_open_streams_t, mode: snd_seq_open_mode_t) !*c.snd_seq_t {
+pub fn snd_seq_open(name: [*:0]const u8, streams: snd_seq_open_streams_t, mode: snd_seq_open_mode_t) !*c.snd_seq_t {
     var handle: ?*c.snd_seq_t = undefined;
     const r = c.snd_seq_open(&handle, name, @intFromEnum(streams), @intFromEnum(mode));
     try snd_error_check(r);
@@ -66,7 +66,7 @@ pub fn snd_seq_close(handle: *c.snd_seq_t) !void {
 
 pub fn snd_seq_create_simple_port(
     handle: *c.snd_seq_t,
-    name: [:0]const u8,
+    name: [*:0]const u8,
     caps: snd_seq_port_caps_t,
     @"type": snd_seq_port_type_t,
 ) !c_int {

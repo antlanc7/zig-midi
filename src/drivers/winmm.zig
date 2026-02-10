@@ -43,13 +43,12 @@ pub fn getMidiInDeviceCount() usize {
     return wm.midiInGetNumDevs();
 }
 
-pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
+pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [*:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
     const nDevices = wm.midiInGetNumDevs();
     for (0..nDevices) |i| {
         const id: common.MidiDeviceId = @truncate(i);
         const caps = wm.midiInGetDevCaps(id) catch continue;
-        const name: [*c]const u8 = @ptrCast(&caps.szPname);
-        const name_slice = std.mem.span(name);
-        cb(id, name_slice, user_data);
+        const name: [*:0]const u8 = @ptrCast(&caps.szPname);
+        cb(id, name, user_data);
     }
 }

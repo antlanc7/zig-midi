@@ -71,7 +71,7 @@ pub fn getMidiInDeviceCount() usize {
     return std.math.maxInt(i32);
 }
 
-pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
+pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [*:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
     // const nDevices = getMidiInDeviceCount();
     // for (0..nDevices) |i| {}
     _ = cb;

@@ -52,12 +52,13 @@ pub fn getMidiInDeviceCount() usize {
     return cm.MIDIGetNumberOfSources();
 }
 
-pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
+pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceName: [*:0]const u8, user_data: ?*anyopaque) void, user_data: ?*anyopaque) void {
     const nDevices = getMidiInDeviceCount();
     for (0..nDevices) |i| {
         const id: common.MidiDeviceId = @truncate(i);
         const source = cm.MIDIGetSource(i);
         const cfName = cm.MIDIObjectGetStringProperty(source, cm.kMIDIPropertyName) catch continue;
+        defer cm.CFRelease(cfName);
         if (cm.CFStringGetCStringPtr(cfName, cm.kCFStringEncodingUTF8)) |name| {
             cb(id, name, user_data);
         } else {
@@ -65,6 +66,5 @@ pub fn forEachMidiDevice(cb: *const fn (deviceId: common.MidiDeviceId, deviceNam
             const name = cm.CFStringGetCString(cfName, &buf, cm.kCFStringEncodingUTF8) catch continue;
             cb(id, name, user_data);
         }
-        cm.CFRelease(cfName);
     }
 }

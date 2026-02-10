@@ -108,36 +108,34 @@ pub fn MIDIObjectGetStringProperty(source: c.MIDIObjectRef, propertyID: c.CFStri
     return cfStringNullable orelse CoreMidiError;
 }
 
-pub fn CFStringGetCStringPtr(cfString: c.CFStringRef, encoding: c.CFStringEncoding) ?[:0]const u8 {
-    const out = c.CFStringGetCStringPtr(cfString, encoding);
-    if (out == null) return null;
-    return std.mem.span(out);
+pub fn CFStringGetCStringPtr(cfString: c.CFStringRef, encoding: c.CFStringEncoding) ?[*:0]const u8 {
+    return c.CFStringGetCStringPtr(cfString, encoding);
 }
 
-pub fn CFStringGetCString(cfString: c.CFStringRef, buffer: []u8, encoding: c.CFStringEncoding) ![:0]u8 {
+pub fn CFStringGetCString(cfString: c.CFStringRef, buffer: []u8, encoding: c.CFStringEncoding) ![*:0]u8 {
     const res = c.CFStringGetCString(cfString, buffer.ptr, @intCast(buffer.len), encoding);
     if (res == 0) return CoreMidiError;
-    const out: [*c]u8 = @ptrCast(buffer.ptr);
-    return std.mem.span(out);
+    const out: [*:0]u8 = @ptrCast(buffer.ptr);
+    return out;
 }
 
 pub const CFRelease = c.CFRelease;
 
-pub fn MIDIClientCreate(name: [:0]const u8, notifyProc: c.MIDINotifyProc, notifyRefCon: ?*anyopaque) !MIDIClientRef {
+pub fn MIDIClientCreate(name: [*:0]const u8, notifyProc: c.MIDINotifyProc, notifyRefCon: ?*anyopaque) !MIDIClientRef {
     var client: MIDIClientRef = undefined;
     const result = c.MIDIClientCreate(CFSTR(name), notifyProc, notifyRefCon, &client);
     try OSStatusCheck(result);
     return client;
 }
 
-pub fn MIDIInputPortCreate(client: MIDIClientRef, name: [:0]const u8, readProc: c.MIDIReadProc, refCon: ?*anyopaque) !MIDIPortRef {
+pub fn MIDIInputPortCreate(client: MIDIClientRef, name: [*:0]const u8, readProc: c.MIDIReadProc, refCon: ?*anyopaque) !MIDIPortRef {
     var port: MIDIPortRef = undefined;
     const result = c.MIDIInputPortCreate(client, CFSTR(name), readProc, refCon, &port);
     try OSStatusCheck(result);
     return port;
 }
 
-// pub fn MIDIInputPortCreateWithProtocol_(client: MIDIClientRef, name: [:0]const u8, protocol: c.MIDIProtocolID, receiveBlock: MIDIReceiveBlock) !MIDIPortRef {
+// pub fn MIDIInputPortCreateWithProtocol_(client: MIDIClientRef, name: [*:0]const u8, protocol: c.MIDIProtocolID, receiveBlock: MIDIReceiveBlock) !MIDIPortRef {
 //     var port: MIDIPortRef = undefined;
 //     const result = c.MIDIInputPortCreateWithProtocol(client, CFSTR(name), protocol, &port, receiveBlock);
 //     try OSStatusCheck(result);

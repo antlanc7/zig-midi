@@ -12,7 +12,7 @@ fn snd_isize_check(r: isize) !usize {
     return @intCast(r);
 }
 
-pub fn snd_rawmidi_open(inputp: ?**c.snd_rawmidi_t, outputp: ?**c.snd_rawmidi_t, name: [:0]const u8, mode: c_int) !void {
+pub fn snd_rawmidi_open(inputp: ?**c.snd_rawmidi_t, outputp: ?**c.snd_rawmidi_t, name: [*:0]const u8, mode: c_int) !void {
     var input: ?*c.snd_rawmidi_t = undefined;
     var output: ?*c.snd_rawmidi_t = undefined;
     try snd_error_check(c.snd_rawmidi_open(if (inputp != null) &input else null, if (outputp != null) &output else null, name, mode));
@@ -33,7 +33,7 @@ pub fn snd_card_next(card: *c_int) !void {
     try snd_error_check(card.*);
 }
 
-pub fn snd_ctl_open(name: [:0]const u8, mode: c_int) !*c.snd_ctl_t {
+pub fn snd_ctl_open(name: [*:0]const u8, mode: c_int) !*c.snd_ctl_t {
     var ctl: ?*c.snd_ctl_t = undefined;
     try snd_error_check(c.snd_ctl_open(&ctl, name, mode));
     return ctl.?;
@@ -79,10 +79,10 @@ pub fn snd_ctl_rawmidi_info(ctl: *c.snd_ctl_t, info: *c.snd_rawmidi_info_t) !voi
     try snd_error_check(c.snd_ctl_rawmidi_info(ctl, info));
 }
 
-pub fn snd_rawmidi_info_get_name(info: *c.snd_rawmidi_info_t) [:0]const u8 {
-    return std.mem.span(c.snd_rawmidi_info_get_name(info));
+pub fn snd_rawmidi_info_get_name(info: *c.snd_rawmidi_info_t) [*:0]const u8 {
+    return c.snd_rawmidi_info_get_name(info);
 }
 
-pub fn snd_rawmidi_info_get_subdevice_name(info: *c.snd_rawmidi_info_t) [:0]const u8 {
-    return std.mem.span(c.snd_rawmidi_info_get_subdevice_name(info));
+pub fn snd_rawmidi_info_get_subdevice_name(info: *c.snd_rawmidi_info_t) [*:0]const u8 {
+    return c.snd_rawmidi_info_get_subdevice_name(info);
 }

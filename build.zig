@@ -104,23 +104,24 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const example_mod = b.createModule(.{
-        .root_source_file = b.path("example/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-        .imports = &.{
-            .{ .name = "zig_midi", .module = mod },
-        },
-    });
-
-    const example_check = b.addExecutable(.{ .name = "zig_midi_example_check", .root_module = example_mod });
-    b.step("check", "check example for compile errors").dependOn(&example_check.step);
-
     const example = b.addExecutable(.{
         .name = "zig_midi_example",
-        .root_module = example_mod,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("example/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+            .imports = &.{
+                .{ .name = "zig_midi", .module = mod },
+            },
+        }),
     });
+
+    const example_check = b.addExecutable(.{
+        .name = "zig_midi_example_check",
+        .root_module = example.root_module,
+    });
+    b.step("check", "check example for compile errors").dependOn(&example_check.step);
 
     const build_example_step = b.step("example", "Build the example");
     const build_example = b.addInstallArtifact(example, .{});
